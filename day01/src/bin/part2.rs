@@ -1,7 +1,8 @@
-use anyhow::Context;
-use regex::{Captures, Match, Matches, Regex};
+#![feature(test)]
+extern crate test;
 
-fn main() -> anyhow::Result<()> {
+use anyhow::Context;
+pub fn main() -> anyhow::Result<()> {
     let file = include_str!("../../input2.txt");
     let result = process(file).context("process part 2")?;
     println!("{}", result);
@@ -50,6 +51,8 @@ pub fn process(input: &str) -> anyhow::Result<String> {
 
 #[cfg(test)]
 mod tests {
+
+    use test::Bencher;
     use super::*;
 
     #[test]
@@ -63,5 +66,13 @@ zoneight234
 7pqrstsixteen";
         assert_eq!("281", process(input)?);
         Ok(())
+    }
+
+    #[bench]
+    fn bench_process(b: &mut Bencher) {
+        // exact code to benchmark must be passed as a closure to the iter
+        // method of Bencher
+        let file = include_str!("../../input2.txt");
+        b.iter(|| process(file));
     }
 }

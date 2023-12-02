@@ -32,7 +32,6 @@ pub fn process(input: &str) -> anyhow::Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::process;
 
     #[test]
     fn test_process() -> anyhow::Result<()> {
