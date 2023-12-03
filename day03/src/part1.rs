@@ -1,7 +1,7 @@
 
 #[derive(Debug, Default)]
 pub struct Matrix {
-    rows: Vec<Vec<char>>
+    pub rows: Vec<Vec<char>>
 }
 impl Matrix {
     pub fn get(&self, row: i32, col:i32) -> Option<char> {
