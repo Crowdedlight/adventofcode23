@@ -3,10 +3,10 @@ pub fn process(input: &str) -> anyhow::Result<String> {
 
     for line in input.lines() {
         // get id
-        let mut parse_string = line.strip_prefix("Card ").unwrap();
+        let parse_string = line.strip_prefix("Card ").unwrap();
         // split on : for actual id
         let (id_string, parse_string) = parse_string.rsplit_once(": ").unwrap();
-        let id:u32 = id_string.trim().parse()?;
+        // let id:u32 = id_string.trim().parse()?;
 
         // split winning and loosing numbers
         let (win_num, own_num) = parse_string.split_once("|").unwrap();
@@ -14,7 +14,6 @@ pub fn process(input: &str) -> anyhow::Result<String> {
         let own_vec: Vec<u32> = own_num.split_whitespace().map(|x| x.trim().parse::<u32>().unwrap()).collect();
 
         // go through all own numbers and check if present
-        let mut first = true;
         let matches:u32 = own_vec.iter().map(|x| if win_vec.contains(x) {1} else {0}).sum();
 
         let mut sum:u32 = if matches > 0 {1} else {0};
