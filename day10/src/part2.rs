@@ -97,7 +97,7 @@ pub fn process(input: &str) -> anyhow::Result<String> {
 
     // print map
     for row in m_loop.rows.iter() {
-        println!("{:?}", row);
+        println!("{:?}", row.iter().collect::<String>());
     }
     println!("------");
 
@@ -108,7 +108,7 @@ pub fn process(input: &str) -> anyhow::Result<String> {
     let mut all_possibilities: Vec<(i32, i32)> = vec![];
 
     // connected search
-    let mut queue: VecDeque<(i32, i32)> = VecDeque::with_capacity(100);
+    let mut queue: VecDeque<(i32, i32)> = VecDeque::with_capacity(200);
     let x_len = m_loop.rows.first().unwrap().len();
     let y_len = m_loop.rows.len();
 
@@ -145,6 +145,7 @@ pub fn process(input: &str) -> anyhow::Result<String> {
         not_nests.push((x, y));
 
         // check each neighbour, if not part of big_loop, then its not_nest
+        // let options: Vec<(i32, i32)> = vec![(0,1),(0,-1),(1,0),(-1,0),(-1,-1),(1,1),(-1,1),(1,-1)];
         let options: Vec<(i32, i32)> = vec![(0,1),(0,-1),(1,0),(-1,0)];
         for option in options {
             let new_pos = (option.0 + x, option.1 + y);
@@ -161,26 +162,147 @@ pub fn process(input: &str) -> anyhow::Result<String> {
         }
     }
 
+    not_nests.sort();
+    not_nests.dedup();
+
+    // make vector of all tiles not in big-path
+    for y in 0..y_len {
+        for x in 0..x_len {
+            let pos = (x as i32,y as i32);
+            if !big_path.contains(&pos) {
+                all_possibilities.push(pos);
+            }
+        }
+    }
     // remove all not_nests from all_possibilities
-    // let filtered_nests: Vec<(i32, i32)> = all_possibilities.into_iter().filter(|x| !not_nests.contains(x)).collect();
+    let filtered_nests: Vec<(i32, i32)> = all_possibilities.into_iter().filter(|x| !not_nests.contains(x)).collect();
+
+    // go through each possible nest, and if it has two neighbours in the same direction that is part of big_path, then it can't be nest
+    for (nest_x, nest_y ) in filtered_nests.iter() {
+        // W
+        if big_path.contains(&(nest_x - 1, *nest_y)) && big_path.contains(&(nest_x - 2, *nest_y)) {
+            // check if symbol on each pos is equal
+            let e_one = m.get(nest_x-1, *nest_y).unwrap();
+            let e_two = m.get(nest_x-2, *nest_y).unwrap();
+
+            if e_one == e_two {
+                not_nests.push((*nest_x,*nest_y));
+                continue;
+            }
+        } // E
+        else if big_path.contains(&(nest_x + 1, *nest_y)) && big_path.contains(&(nest_x + 2, *nest_y)) {
+            // check if symbol on each pos is equal
+            let e_one = m.get(nest_x+1, *nest_y).unwrap();
+            let e_two = m.get(nest_x+2, *nest_y).unwrap();
+
+            if e_one == e_two {
+                not_nests.push((*nest_x,*nest_y));
+                continue;
+            }
+        } // N
+        else if big_path.contains(&(*nest_x, nest_y-1)) && big_path.contains(&(*nest_x, nest_y-2)) {
+            // check if symbol on each pos is equal
+            let e_one = m.get(*nest_x, nest_y-1).unwrap();
+            let e_two = m.get(*nest_x, nest_y-2).unwrap();
+
+            if e_one == e_two {
+                not_nests.push((*nest_x,*nest_y));
+                continue;
+            }
+        } // S
+        else if big_path.contains(&(*nest_x, nest_y+1)) && big_path.contains(&(*nest_x, nest_y+2)) {
+            // check if symbol on each pos is equal
+            let e_one = m.get(*nest_x, nest_y+1).unwrap();
+            let e_two = m.get(*nest_x, nest_y+2).unwrap();
+
+            if e_one == e_two {
+                not_nests.push((*nest_x,*nest_y));
+                continue;
+            }
+        }
+
+        // check if any diagnoally neighbour is part of not_nests, as then we can't be either
+        // let neighbour_pos: Vec<(i32, i32)> = vec![(-1,-1),(1,1),(-1,1),(1,-1)];
+        // for (n_x, n_y) in neighbour_pos {
+        //     if not_nests.contains(&(n_x + nest_x, n_y + nest_y)) {
+        //         not_nests.push((*nest_x,*nest_y));
+        //         break;
+        //     }
+        // }
+    }
+
+    // remove duplicates
+    not_nests.sort();
+    not_nests.dedup();
+
+    // connected search again for all nests.
+    let possible_nests: Vec<(i32, i32)> = filtered_nests.into_iter().filter(|x| !not_nests.contains(x)).collect();
+    let mut definitely_nests: Vec<(i32, i32)> = vec![];
+    let mut nest_queue: VecDeque<(i32, i32)> = VecDeque::from(possible_nests);
+
+    // go through queue
+    while !nest_queue.is_empty() {
+        // get element
+        let (x, y) = nest_queue.pop_front().unwrap();
+
+        definitely_nests.push((x, y));
+
+        // check each neighbour, if not part of big_loop, then its nest
+        // let options: Vec<(i32, i32)> = vec![(0,1),(0,-1),(1,0),(-1,0),(-1,-1),(1,1),(-1,1),(1,-1)];
+        let options: Vec<(i32, i32)> = vec![(0,1),(0,-1),(1,0),(-1,0)];
+        for option in options {
+            let new_pos = (option.0 + x, option.1 + y);
+
+            // check bounds
+            if new_pos.0 < 0 || new_pos.0 >= x_len as i32 || new_pos.1 < 0 || new_pos.1 >= y_len as i32 {
+                continue;
+            }
+
+            // neither loop, nor already visited nodes should contain it before its new
+            if !big_path.contains(&new_pos) && !definitely_nests.contains(&new_pos) {
+                nest_queue.push_back(new_pos);
+            }
+        }
+    }
 
     // set Os for not-nest
     for (x, y) in not_nests.iter() {
         m_loop.set(*x,*y,'O');
     }
 
+    // set Is for not-nest
+    for (x, y) in definitely_nests.iter() {
+        m_loop.set(*x,*y,'I');
+    }
+
     // println!("{:?}", filtered_nests);
 
-    for row in m_loop.rows {
-        println!("{:?}", row);
+    for row in m_loop.rows.iter() {
+        println!("{:?}", row.iter().collect::<String>());
     }
     println!("----");
 
-    not_nests.sort();
-    not_nests.dedup();
+
     // sum of enclosed tiles must be all_tiles - path.len() - not_nest.len();
     let sum: u32 = (x_len * y_len) as u32 - big_path.len() as u32 - not_nests.len() as u32;
 
+    let mut sum_test: u32 = 0;
+    for y in 0..y_len {
+        for x in 0..x_len {
+           let char = m_loop.rows[y][x];
+           if char != '*' && char != 'O'{
+               m_loop.set(x as i32, y as i32, 'I');
+               sum_test += 1;
+           }
+        }
+    }
+
+    for row in m_loop.rows.iter() {
+        println!("{:?}", row.iter().collect::<String>());
+    }
+    println!("----");
+
+    println!("sum: {:?}, sum_test: {:?}, sum_nest: {:?}", sum, sum_test, definitely_nests.len());
 
     // todo find sub-loops. Smaller loops of the big loop where the loop is adjecant to eachother. So save big loop in vector with x,y from one end to another, not double start as before
     //  end condition for big loop is to find S
