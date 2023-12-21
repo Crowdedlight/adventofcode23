@@ -1,5 +1,6 @@
 
-enum TileType {
+#[derive(Debug, Clone)]
+pub enum TileType {
     Empty,
     MirrorRightAngle,
     MirrorLeftAngle,
@@ -7,15 +8,15 @@ enum TileType {
     SplitterHorizontal
 }
 
-#[derive(Debug, Copy, Clone)]
-struct Tile {
+#[derive(Debug, Clone)]
+pub struct Tile {
     pub tile_type: TileType,
     pub symbol: char,
     pub visited: bool,
-    pub location: (i32, i32)
+    // pub location: (i32, i32)
 }
 impl Tile {
-    pub fn new(symbol: char, location: (i32, i32)) -> Self {
+    pub fn new(symbol: char) -> Self {
 
         let tile_type = match symbol {
             '.' => TileType::Empty,
@@ -28,7 +29,7 @@ impl Tile {
 
         let visited = false;
 
-        Self { tile_type, symbol, visited, location }
+        Self { tile_type, symbol, visited }
     }
 }
 
@@ -37,17 +38,22 @@ pub struct Matrix {
     pub rows: Vec<Vec<Tile>>
 }
 impl Matrix {
-    pub fn get_ref(&self, row: i32, col:i32) -> Option<&Tile> {
-        Some(self.rows.get(row as usize)?.get(col as usize)?)
+    pub fn get_ref(&self, x: i32, y:i32) -> Option<&Tile> {
+        Some(self.rows.get(y as usize)?.get(x as usize)?)
     }
     pub fn add_row(&mut self, row: Vec<char>) {
-        // todo 
-        let newV = row.iter().map(|x| Tile::new())
-        self.rows.push(row);
+        let newV = row.iter().map(|x| Tile::new(*x)).collect();
+        self.rows.push(newV);
     }
     pub fn print(&self) {
         for row in self.rows.iter() {
-            println!("{:?}", row.iter().collect::<String>());
+            println!("{}", row.iter().map(|x| x.symbol).collect::<String>());
+        }
+    }
+    pub fn print_pretty(&self) {
+        for row in self.rows.iter() {
+            // TODO
+            //  make it print where it replaces chars with unicode symbols for path
         }
     }
 }
@@ -62,6 +68,8 @@ pub fn process(input: &str) -> anyhow::Result<String> {
         m.add_row(row);
     }
 
+    m.print();
+
     Ok(0.to_string())
 }
 
@@ -71,17 +79,17 @@ mod tests {
 
     #[test]
     fn test_process() -> anyhow::Result<()> {
-        let input = "467..114..
-        ...*......
-        ..35..633.
-        ......#...
-        617*......
-        .....+.58.
-        ..592.....
-        ......755.
-        ...$.*....
-        .664.598..";
-                assert_eq!("4361", process(input)?);
+        let input = r".|...\....
+|.-.\.....
+.....|-...
+........|.
+..........
+.........\
+..../.\\..
+.-.-/..|..
+.|....-|.\
+..//.|....";
+                assert_eq!("46", process(input)?);
                 Ok(())
     }
 }
